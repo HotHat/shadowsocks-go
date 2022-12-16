@@ -1,7 +1,20 @@
 package ss2022
 
+import "crypto/rand"
+
 type Counter struct {
 	Number [12]byte
+}
+
+func NewCounter() *Counter {
+
+	counter := new(Counter)
+	_, err := rand.Read(counter.Number[:])
+	if err != nil {
+		panic("nonce encryptNonce init error")
+	}
+
+	return counter
 }
 
 func (c *Counter) Increment() {

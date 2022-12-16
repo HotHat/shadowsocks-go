@@ -1,0 +1,6 @@
+
+{
+  "protocol": "2022-blake3-aes-128-gcm",
+  "psk": "JIloOlaO1V506UnRV521mg==",
+  "listen": 1080
+}
