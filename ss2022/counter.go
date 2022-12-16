@@ -7,11 +7,10 @@ type Counter struct {
 }
 
 func NewCounter() *Counter {
-
 	counter := new(Counter)
 	_, err := rand.Read(counter.Number[:])
 	if err != nil {
-		panic("nonce encryptNonce init error")
+		panic("nonce encryptNonce init fail")
 	}
 
 	return counter

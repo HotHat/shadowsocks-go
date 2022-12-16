@@ -9,7 +9,7 @@ import (
 )
 
 func TestNonce(t *testing.T) {
-	//n := Nonce()
+	//n := EncryptNonce()
 	//fmt.Println(n)
 
 }
@@ -27,11 +27,14 @@ func TestEncryption(t *testing.T) {
 		panic(err.Error())
 	}
 
-	//fmt.Println(Nonce())
-	b := Encryption(aesgcm, []byte("example"))
+	nonce := NewCounter()
+	c := Crypto{aesgcm, *nonce, *nonce}
+
+	//fmt.Println(EncryptNonce())
+	b := c.Encryption([]byte("example"))
 
 	fmt.Println(b)
-	//fmt.Println(Nonce())
+	//fmt.Println(EncryptNonce())
 }
 
 func TestDecryption(t *testing.T) {
@@ -44,17 +47,26 @@ func TestDecryption(t *testing.T) {
 	if err != nil {
 		panic(err.Error())
 	}
-	//fmt.Println("Nonce:", Nonce())
-	b := Encryption(aesgcm, []byte("example"))
-	fmt.Println("Encryption:", b)
-	//fmt.Println("Nonce:", Nonce())
+	nonce := NewCounter()
+	c1 := NewCrypto(aesgcm, *nonce)
+	c2 := NewCrypto(aesgcm, *nonce)
 
-	p, err := Decryption(aesgcm, b)
+	//fmt.Println("EncryptNonce:", EncryptNonce())
+	b1 := c1.Encryption([]byte("example1"))
+	b2 := c1.Encryption([]byte("example2"))
 
-	if err != nil {
-		panic(err.Error())
-	}
-
+	p, _ := c2.Decryption(b1)
 	fmt.Println(string(p))
-	//fmt.Println(Nonce())
+	p, _ = c2.Decryption(b2)
+	fmt.Println(string(p))
+
+	p1 := c2.Encryption([]byte("example1111"))
+	p2 := c2.Encryption([]byte("example2222"))
+
+	q, _ := c1.Decryption(p1)
+	fmt.Println(string(q))
+	q, _ = c1.Decryption(p2)
+	fmt.Println(string(q))
+
+	//fmt.Println(EncryptNonce())
 }

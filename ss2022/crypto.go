@@ -2,30 +2,37 @@ package ss2022
 
 import (
 	"crypto/cipher"
-	"fmt"
 )
 
-var encryptNonce = NewCounter()
+type Crypto struct {
+	Cipher       cipher.AEAD
+	EncryptNonce Counter
+	DecryptNonce Counter
+}
 
-// copy of encrypt nonce syn increment
-var decryptNonce = *encryptNonce
+func NewCrypto(cipher cipher.AEAD, nonce Counter) *Crypto {
+	return &Crypto{
+		cipher,
+		nonce,
+		nonce,
+	}
+}
 
-func Encryption(aead cipher.AEAD, plaintext []byte) []byte {
-	nonce := encryptNonce.Bytes()
-	fmt.Println("encryption nonce: ", nonce)
-	ciphertext := aead.Seal(nil, nonce[:], plaintext, nil)
-	encryptNonce.Increment()
+func (c Crypto) Encryption(plaintext []byte) []byte {
+	nonce := c.EncryptNonce.Bytes()
+	ciphertext := c.Cipher.Seal(nil, nonce[:], plaintext, nil)
+	c.EncryptNonce.Increment()
 	return ciphertext
 }
 
-func Decryption(aead cipher.AEAD, ciphertext []byte) ([]byte, error) {
-	nonce := decryptNonce.Bytes()
-	fmt.Println("decryption nonce: ", nonce)
-	plaintext, err := aead.Open(nil, nonce[:], ciphertext, nil)
+func (c Crypto) Decryption(ciphertext []byte) ([]byte, error) {
+	nonce := c.DecryptNonce.Bytes()
+
+	plaintext, err := c.Cipher.Open(nil, nonce[:], ciphertext, nil)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	decryptNonce.Increment()
+	c.DecryptNonce.Increment()
 	return plaintext, err
 }
