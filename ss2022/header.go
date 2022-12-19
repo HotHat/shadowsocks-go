@@ -61,14 +61,27 @@ func NewRequestVariableHeader(typ byte, addr []byte, port uint16, padLen uint16,
 	buf := make([]byte, 0)
 	var n uint16
 
-	buf = append(buf, typ)
-	n += 1
+	//buf = append(buf, typ)
+	//n += 1
 
-	buf = append(buf, addr...)
-	n += uint16(len(addr))
+	var addrBuf []byte
 
-	buf = append(buf, util.PutUint16(port)...)
-	n += 2
+	if typ == socket5.Socket5AddressIPv4 {
+		addrBuf = socket5.NewSocket5IPv4Address(addr, port)
+	}
+	if typ == socket5.Socket5AddressIPv6 {
+		addrBuf = socket5.NewSocket5IPv6Address(addr, port)
+	}
+	if typ == socket5.Socket5AddressDomain {
+		addrBuf = socket5.NewSocket5DomainAddress(addr, port)
+	}
+
+	buf = append(buf, addrBuf...)
+	n += uint16(len(addrBuf))
+	//n += uint16(len(addr))
+	//
+	//buf = append(buf, util.PutUint16(port)...)
+	//n += 2
 
 	buf = append(buf, util.PutUint16(padLen)...)
 	n += 2
@@ -105,7 +118,12 @@ func ParseRequestVariableHeader(buf []byte) (*socket5.Address, []byte, error) {
 	if uint16(len(buf)) < l+1+pl {
 		return nil, nil, errors.New("parse padding error")
 	}
-	payload := buf[l+2+pl:]
+	var payload []byte
+	if int(l+2+pl) == len(buf) {
+		payload = nil
+	} else {
+		payload = buf[l+2+pl:]
+	}
 	return addr, payload, nil
 }
 

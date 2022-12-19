@@ -55,18 +55,18 @@ func NewSocket5IPv6Address(ip net.IP, port uint16) []byte {
 	return buf
 }
 
-func NewSocket5DomainAddress(domain string, port uint16) []byte {
+func NewSocket5DomainAddress(domain []byte, port uint16) []byte {
 	buf := make([]byte, 1+1+256+2)
 
 	buf[0] = Socket5AddressDomain
 
-	c := []byte(domain)
-	l := len(c)
+	//c := domain
+	l := len(domain)
 	if l > 255 {
 		panic("domain length more than 255")
 	}
 	buf[1] = uint8(l)
-	copy(buf[2:], c)
+	copy(buf[2:], domain)
 	copy(buf[l+2:], binary.PutUint16(port))
 
 	return buf[0 : l+4]

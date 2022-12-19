@@ -23,13 +23,19 @@ func (c *Stream) AddSalt(salt []byte) {
 	c.cipher = NewCryptoGCM(NewSessionSubKey(c.psk, salt))
 }
 
-func (c Stream) Encryption(plaintext []byte) []byte {
+func (c *Stream) Encryption(plaintext []byte) []byte {
+	if c.cipher == nil {
+		panic("add salt first")
+	}
 	ciphertext := c.cipher.Seal(nil, c.nonce, plaintext, nil)
 	increment(c.nonce)
 	return ciphertext
 }
 
-func (c Stream) Decryption(ciphertext []byte) ([]byte, error) {
+func (c *Stream) Decryption(ciphertext []byte) ([]byte, error) {
+	if c.cipher == nil {
+		panic("add salt first")
+	}
 	plaintext, err := c.cipher.Open(nil, c.nonce, ciphertext, nil)
 	if err != nil {
 		panic(err.Error())

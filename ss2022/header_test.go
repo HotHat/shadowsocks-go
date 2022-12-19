@@ -25,12 +25,12 @@ func TestParseRequestFixedHeader(t *testing.T) {
 }
 
 func TestNewRequestVariableHeader(t *testing.T) {
-	b := NewRequestVariableHeader(1, net.IPv4(192, 168, 0, 128).To4(), 80, 10, []byte("abcdefg"))
+	b := NewRequestVariableHeader(1, net.IPv4(192, 168, 0, 128), 80, 10, []byte("abcdefg"))
 	fmt.Println(b)
 }
 
 func TestParseRequestVariableHeader(t *testing.T) {
-	b := NewRequestVariableHeader(1, net.IPv4(192, 168, 0, 128).To4(), 80, 10, []byte("abcdefg"))
+	b := NewRequestVariableHeader(1, net.IPv4(192, 168, 0, 128), 80, 10, []byte("abcdefg"))
 	fmt.Println(b)
 
 	addr, payload, err := ParseRequestVariableHeader(b)
