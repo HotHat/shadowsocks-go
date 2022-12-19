@@ -27,10 +27,9 @@ func TestRequest(t *testing.T) {
 
 	fmt.Println("salt:", salt)
 
-	subkey, err := NewSHA1(key, salt, utils.ToByte("ss-subkey"), KeySize)
-	if err != nil {
+	subkey := make([]byte, KeySize)
+	utils.KdfSHA1(key, salt, utils.ToByte("ss-subkey"), subkey)
 
-	}
 	fmt.Println("subkey:", subkey)
 
 	addr := NewSocket5DomainAddress([]byte("baidu.com"), 80)

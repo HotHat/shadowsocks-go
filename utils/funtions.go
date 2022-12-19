@@ -3,6 +3,9 @@ package utils
 import (
 	"crypto/md5"
 	"crypto/rand"
+	"crypto/sha1"
+	"golang.org/x/crypto/hkdf"
+	"io"
 	"log"
 )
 
@@ -42,4 +45,11 @@ func Kdf(password string, keyLen int) []byte {
 		h.Reset()
 	}
 	return b[:keyLen]
+}
+func KdfSHA1(secret, salt, info, out []byte) {
+	hk := hkdf.New(sha1.New, secret, salt, info)
+	_, err := io.ReadFull(hk, out)
+	if err != nil {
+		panic("hkdf sha1 fail")
+	}
 }
