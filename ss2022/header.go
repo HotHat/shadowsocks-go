@@ -3,7 +3,6 @@ package ss2022
 import (
 	"crypto/rand"
 	"errors"
-	"github.com/zeebo/blake3"
 	"log"
 	util "shadowsocks-go/binary"
 	"shadowsocks-go/socket5"
@@ -74,16 +73,20 @@ func NewRequestVariableHeader(typ byte, addr []byte, port uint16, padLen uint16,
 	buf = append(buf, util.PutUint16(padLen)...)
 	n += 2
 
-	tmp := make([]byte, padLen)
-	_, err := rand.Read(tmp)
-	if err != nil {
-		panic("generate rand padding content error")
+	if padLen > 0 {
+		tmp := make([]byte, padLen)
+		_, err := rand.Read(tmp)
+		if err != nil {
+			panic("generate rand padding content error")
+		}
+		buf = append(buf, tmp...)
+		n += padLen
 	}
-	buf = append(buf, tmp...)
-	n += padLen
 
-	buf = append(buf, payload...)
-	n += uint16(len(payload))
+	if payload != nil {
+		buf = append(buf, payload...)
+		n += uint16(len(payload))
+	}
 
 	return buf
 }
@@ -128,12 +131,4 @@ func NewSalt(len int) []byte {
 		log.Fatalln(err)
 	}
 	return b
-}
-
-func NewSessionSubKey(context string, key []byte, salt []byte) []byte {
-	material := key[:]
-	copy(material, salt)
-	out := make([]byte, 32)
-	blake3.DeriveKey(context, material, out)
-	return out
 }
