@@ -46,10 +46,34 @@ func Kdf(password string, keyLen int) []byte {
 	}
 	return b[:keyLen]
 }
+
 func KdfSHA1(secret, salt, info, out []byte) {
 	hk := hkdf.New(sha1.New, secret, salt, info)
 	_, err := io.ReadFull(hk, out)
 	if err != nil {
 		panic("hkdf sha1 fail")
 	}
+}
+
+func EvpBytesToKey(password string, keyLen int) (key []byte) {
+	const md5Len = 16
+
+	cnt := (keyLen-1)/md5Len + 1
+	m := make([]byte, cnt*md5Len)
+	copy(m, MD5([]byte(password)))
+	d := make([]byte, md5Len+len(password))
+	start := 0
+	for i := 1; i < cnt; i++ {
+		start += md5Len
+		copy(d, m[start-md5Len:start])
+		copy(d[md5Len:], password)
+		copy(m[start:], MD5(d))
+	}
+	return m[:keyLen]
+}
+
+func MD5(data []byte) []byte {
+	hash := md5.New()
+	hash.Write(data)
+	return hash.Sum(nil)
 }

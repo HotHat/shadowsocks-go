@@ -12,15 +12,20 @@ import (
 	"testing"
 )
 
-const KeySize = 32
-const NoneSize = 12
+const (
+	KeySize  = 32
+	NoneSize = 12
+	TagSize  = 16
+)
 
 func TestRequest(t *testing.T) {
-	key := utils.Kdf("cdBIDV42DCwnfIN", KeySize)
-	fmt.Println("psk len:", len(key))
-	//key = append(key, []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}...)
+	//key := utils.EvpBytesToKey2("cdBIDV42DCwnfIN", KeySize)
+	key := utils.EvpBytesToKey("cdBIDV42DCwnfIN", KeySize)
 	fmt.Println("psk len:", len(key))
 	fmt.Println("psk:", key)
+	//key = append(key, []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}...)
+	//fmt.Println("psk len:", len(key2))
+	//fmt.Println("psk2:", key2)
 
 	//salt := utils.NewSalt(KeySize)
 	salt := []byte{233, 28, 168, 191, 50, 47, 245, 2, 19, 164, 179, 1, 44, 150, 183, 121, 52, 96, 69, 29, 221, 255, 149, 207, 235, 146, 141, 183, 32, 136, 81, 41}
@@ -54,9 +59,6 @@ func TestRequest(t *testing.T) {
 
 	nonce := make([]byte, NoneSize)
 
-	addrEn := aesgcm.Seal(nil, nonce, addr, nil)
-	utils.IncrementNonce(nonce)
-
 	//data := "GET / HTTP/1.1\n\n"
 
 	//aes.NewCipher(subkey)
@@ -66,16 +68,22 @@ func TestRequest(t *testing.T) {
 	buf = append(buf, salt...)
 	fmt.Printf("salt: % x\n", salt)
 
-	// add address len
-	aln := len(addrEn)
+	// add address len, tag size 16
+	aln := len(addr) + TagSize
 	abl := binary.PutUint16(uint16(aln))
+	fmt.Printf("nonce: % x\n", nonce)
 	ablEn := aesgcm.Seal(nil, nonce, abl, nil)
 	utils.IncrementNonce(nonce)
+
 	buf = append(buf, ablEn...)
 	fmt.Printf("address len: %d hex:% x\n", aln, abl)
 	fmt.Printf("address len encode: % x\n", ablEn)
 
 	// add address
+	fmt.Printf("nonce: % x\n", nonce)
+	addrEn := aesgcm.Seal(nil, nonce, addr, nil)
+	utils.IncrementNonce(nonce)
+
 	buf = append(buf, addrEn...)
 	fmt.Printf("address : % x\n", addr)
 	fmt.Printf("address encode: % x\n", addrEn)
@@ -101,6 +109,7 @@ func TestRequest(t *testing.T) {
 
 	fmt.Println("send buffer:", buf)
 	fmt.Printf("send buffer: % x\n", buf)
+	///*
 	n, err := conn.Write(buf)
 	if err != nil {
 		fmt.Println("read fail:", err)
@@ -114,5 +123,7 @@ func TestRequest(t *testing.T) {
 	}
 
 	fmt.Println("read data:", rb[0:n])
+
+	//*/
 
 }
