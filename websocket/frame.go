@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -15,6 +16,24 @@ const (
 	OpcodePing     = 0x9
 	OpcodePong     = 0xA
 )
+
+func NewHttpUpgrade(path string, host, origin string) []byte {
+	t := make([]byte, 16)
+	_, _ = rand.Read(t)
+
+	key := base64.StdEncoding.EncodeToString(t)
+
+	b := "GET " + path + " HTTP/1.1\r\n" +
+		"Host: " + host + "\r\n" +
+		"origin: " + origin + "\r\n" +
+		"Upgrade: websocket\r\n" +
+		"Connection: Upgrade\r\n" +
+		"Sec-WebSocket-Key: " + key + "\r\n" +
+		"Sec-WebSocket-Version: 13\r\n" +
+		"\r\n\r\n"
+
+	return []byte(b)
+}
 
 // NewFrame websocket frame struct
 // 0                   1                   2                   3

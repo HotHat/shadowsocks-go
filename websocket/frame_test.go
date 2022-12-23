@@ -1,7 +1,9 @@
 package websocket
 
 import (
+	"encoding/base64"
 	"fmt"
+	"net"
 	"testing"
 )
 
@@ -44,4 +46,69 @@ func TestParseFrame(t *testing.T) {
 	fmt.Println(fin)
 	fmt.Println(opcode)
 	fmt.Println(string(payload))
+}
+
+func TestNewFrame2(t *testing.T) {
+
+	up := NewHttpUpgrade("/", "baidu.com", "baidu.com")
+	//s := NewFrame(true, OpcodePing, true, []byte("hello, websocket"))
+	s := []byte{0x81, 0x85, 0x37, 0xfa, 0x21, 0x3d, 0x7f, 0x9f, 0x4d, 0x51, 0x58}
+
+	b := s[6:]
+
+	fmt.Printf("%b", s)
+	fmt.Println(len(b))
+	fmt.Println(b)
+	fmt.Println(string(b))
+	_, _, p, _ := ParseFrame(s)
+	fmt.Println(string(p))
+	///*
+	conn, err := net.Dial("tcp", "192.168.68.8:8282")
+	if err != nil {
+		panic(err)
+	}
+	buff := make([]byte, 4096)
+
+	n, err := conn.Write(up)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("write byte:", n)
+
+	n, _ = conn.Read(buff)
+	fmt.Println(string(buff[:n]))
+
+	fmt.Printf("%b", s)
+	n, err = conn.Write(s)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("write byte:", n)
+
+	n, _ = conn.Read(buff)
+	fmt.Println(string(buff[:n]))
+
+	//*/
+
+}
+
+func TestEn(t *testing.T) {
+	s := base64.StdEncoding.EncodeToString([]byte{202, 100, 234, 10})
+	fmt.Println(s)
+}
+
+func TestParseFrame2(t *testing.T) {
+	b := []byte{0x81, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f}
+	f, op, p, _ := ParseFrame(b)
+	fmt.Println(f)
+	fmt.Println(op)
+	fmt.Println(string(p))
+}
+
+func TestParseFrame3(t *testing.T) {
+	b := []byte{0x81, 0x85, 0x37, 0xfa, 0x21, 0x3d, 0x7f, 0x9f, 0x4d, 0x51, 0x58}
+	f, op, p, _ := ParseFrame(b)
+	fmt.Println(f)
+	fmt.Println(op)
+	fmt.Println(string(p))
 }
