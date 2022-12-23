@@ -4,7 +4,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"fmt"
-	"net"
 	"shadowsocks-go/binary"
 	"shadowsocks-go/utils"
 
@@ -39,10 +38,10 @@ func TestRequest(t *testing.T) {
 
 	addr := NewSocket5DomainAddress([]byte("baidu.com"), 80)
 
-	conn, err := net.Dial("tcp", "85.208.108.60:8118")
-	if err != nil {
-		fmt.Println("Dial fail")
-	}
+	//conn, err := net.Dial("tcp", "85.208.108.60:8118")
+	//if err != nil {
+	//	fmt.Println("Dial fail")
+	//}
 
 	fmt.Println("Shadowsocks server connected")
 
@@ -109,21 +108,70 @@ func TestRequest(t *testing.T) {
 
 	fmt.Println("send buffer:", buf)
 	fmt.Printf("send buffer: % x\n", buf)
-	///*
-	n, err := conn.Write(buf)
+	/*
+		n, err := conn.Write(buf)
+		if err != nil {
+			fmt.Println("read fail:", err)
+		}
+		fmt.Println("write byte number:", n)
+
+		rb := make([]byte, 4096)
+		n, err = conn.Read(rb)
+		if err != nil {
+			fmt.Println("read fail:", err)
+		}
+
+		fmt.Println("read data:", rb[0:n])
+
+	*/
+
+}
+
+func TestDecode(t *testing.T) {
+	key := utils.EvpBytesToKey("cdBIDV42DCwnfIN", KeySize)
+
+	buf := []byte{233, 28, 168, 191, 50, 47, 245, 2, 19, 164, 179, 1, 44, 150, 183, 121, 52, 96, 69, 29, 221, 255, 149, 207, 235, 146, 141, 183, 32, 136, 81, 41, 207, 215, 25, 124, 176, 59, 89, 88, 81, 40, 140, 86, 239, 191, 229, 161, 15, 127, 210, 12, 49, 135, 196, 141, 70, 184, 225, 84, 231, 60, 218, 254, 45, 151, 165, 16, 53, 224, 16, 52, 249, 100, 220, 169, 240, 222, 202}
+
+	salt := buf[0:KeySize]
+
+	subkey := make([]byte, KeySize)
+	utils.KdfSHA1(key, salt, utils.ToByte("ss-subkey"), subkey)
+
+	fmt.Println("subkey:", subkey)
+
+	block, err := aes.NewCipher(subkey)
 	if err != nil {
-		fmt.Println("read fail:", err)
+		panic(err.Error())
 	}
-	fmt.Println("write byte number:", n)
+	fmt.Printf("subkey: % x\n", subkey)
 
-	rb := make([]byte, 4096)
-	n, err = conn.Read(rb)
+	aesgcm, err := cipher.NewGCM(block)
 	if err != nil {
-		fmt.Println("read fail:", err)
+		panic(err.Error())
 	}
 
-	fmt.Println("read data:", rb[0:n])
+	nonce := make([]byte, NoneSize)
+	ln := buf[KeySize : KeySize+2+TagSize]
 
-	//*/
+	dln, err := aesgcm.Open(nil, nonce, ln, nil)
+	utils.IncrementNonce(nonce)
+	if err != nil {
+		panic("len open fail")
+	}
+	dn := binary.GetUint16(dln)
+	fmt.Println("len:", dn)
+
+	addrS := buf[KeySize+2+TagSize : KeySize+2+TagSize+dn]
+	daddrs, err := aesgcm.Open(nil, nonce, addrS, nil)
+	utils.IncrementNonce(nonce)
+	if err != nil {
+		panic("addr open fail")
+	}
+
+	addr, err := ParseSocket5Address(daddrs)
+	if err != nil {
+		panic("len open fail")
+	}
+	fmt.Println("Addr:", addr)
 
 }
