@@ -2,10 +2,14 @@ package websocket
 
 import (
 	"crypto/rand"
+	"crypto/sha1"
 	"encoding/base64"
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"regexp"
+	"shadowsocks-go/parser"
+	"strings"
 )
 
 const (
@@ -33,6 +37,25 @@ func NewHttpUpgrade(path string, host, origin string) []byte {
 		"\r\n\r\n"
 
 	return []byte(b)
+}
+
+func NewsSecWebSocketKey() string {
+	t := make([]byte, 16)
+	_, err := rand.Read(t)
+	if err != nil {
+		panic("NewsSecWebSocketKey fail")
+	}
+
+	return base64.StdEncoding.EncodeToString(t)
+}
+
+func HttpUpgradeKeyValidate(key, accept string) bool {
+	key += "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+	s1 := sha1.New()
+	s1.Write([]byte(key))
+	k := base64.StdEncoding.EncodeToString(s1.Sum(nil))
+
+	return k == accept
 }
 
 // NewFrame websocket frame struct
@@ -197,5 +220,37 @@ func ParseFrame(buf []byte) (fin bool, opcode uint8, data []byte, err error) {
 		}
 	}
 
+	return
+}
+
+func ParseHttpHeaders(buf []byte) (headerMap map[string]string, err error) {
+	str := string(buf)
+	idx := strings.Index(str, "\r\n\r\n")
+
+	fmt.Println(idx)
+	headers := strings.Split(str, "\r\n")
+	// two \r\n and http request line
+	if len(headers) < 3 {
+		return nil, parser.ParseContinue.WithReason("http request line required")
+	}
+	re := regexp.MustCompile(" +")
+
+	requestLine := headers[0]
+	ra := re.Split(requestLine, -1)
+	//fmt.Println("request line len:", len(ra), "content:", ra)
+	if len(ra) != 3 {
+		return nil, parser.ParseFatal.WithReason("http request line required")
+	}
+
+	re1 := regexp.MustCompile(" *: *")
+
+	for i := 1; i < len(headers)-2; i++ {
+		//fmt.Println("index:", i, " header:", headers[i])
+		sp := re1.Split(headers[i], -1)
+		k := strings.Trim(sp[0], " ")
+		headerMap[k] = strings.Trim(sp[1], " ")
+	}
+
+	//fmt.Println(headerMap)
 	return
 }
