@@ -223,6 +223,69 @@ func ParseFrame(buf []byte) (fin bool, opcode uint8, data []byte, err error) {
 	return
 }
 
+func ParseFramePayloadLength(buf []byte) (fin bool, opcode uint8, mask []byte, payload uint64, err error) {
+	bufLen := len(buf)
+	if bufLen < 2 {
+		err = parser.ParseContinue.WithReason("frame length less than 2")
+		return
+	}
+
+	fin = (buf[0] & 0b10000000) > 0
+	opcode = buf[0] & 0b00001111
+
+	isMask := (buf[1] & 0b10000000) > 0
+	maskLen := 0
+	maskStart := 2
+	if isMask {
+		maskLen = 4
+	}
+
+	payloadLenMark := int(buf[1] & 0b01111111)
+
+	if payloadLenMark == 0 {
+		err = parser.ParseFatal.WithReason("payload length is 0")
+		return
+	}
+
+	if payloadLenMark <= 125 {
+		payload = uint64(payloadLenMark)
+
+	} else if payloadLenMark == 126 {
+		s := 2 + 2 + maskLen
+		if bufLen < s {
+			err = parser.ParseContinue.WithReason(fmt.Sprintf("frame length less than %d", s))
+			return
+		}
+
+		payload = uint64(binary.BigEndian.Uint16(buf[2:4]))
+		maskStart += 2
+	} else { // 127
+		s := 2 + 8 + maskLen
+		if bufLen < s {
+			err = parser.ParseContinue.WithReason(fmt.Sprintf("frame length less than %d", s))
+			return
+		}
+
+		if (buf[3] & 0b10000000) > 0 {
+			err = parser.ParseFatal.WithReason("64-bit unsigned integer the most significant bit must be 0")
+			return
+		}
+
+		payload = binary.BigEndian.Uint64(buf[2:10])
+		maskStart += 8
+	}
+
+	// mask
+	if isMask {
+		if bufLen < maskStart+4 {
+			err = parser.ParseContinue.WithReason(fmt.Sprintf("frame length less than %d", maskStart+4))
+			return
+		}
+		mask = buf[maskStart : maskStart+4]
+	}
+
+	return
+}
 func ParseHttpHeaders(buf []byte) (headerMap map[string]string, err error) {
 	str := string(buf)
 	idx := strings.Index(str, "\r\n\r\n")
