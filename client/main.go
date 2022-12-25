@@ -69,7 +69,6 @@ func handleWrite(ctx context.Context, conn net.Conn, channel <-chan []byte, isEx
 			fmt.Println("Write:", n, " data:", buf)
 		case <-ctx.Done():
 			return
-
 		}
 	}
 }
@@ -78,6 +77,8 @@ func handleConnection(conn net.Conn) {
 	ctx, cancel := context.WithCancel(context.Background())
 	isExit := make(chan bool)
 	channel := make(chan []byte)
+	defer close(isExit)
+	defer close(channel)
 
 	go handleRead(ctx, conn, channel, isExit)
 	go handleWrite(ctx, conn, channel, isExit)
