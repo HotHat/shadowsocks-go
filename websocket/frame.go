@@ -286,15 +286,25 @@ func ParseFramePayloadLength(buf []byte) (fin bool, opcode uint8, mask []byte, p
 
 	return
 }
-func ParseHttpHeaders(buf []byte) (headerMap map[string]string, err error) {
+func ParseHttpHeaders(buf []byte) (headerMap map[string]string, end int, err error) {
+	headerMap = make(map[string]string)
 	str := string(buf)
-	idx := strings.Index(str, "\r\n\r\n")
+	end = strings.Index(str, "\r\n\r\n")
 
-	fmt.Println(idx)
+	//end = idx
+	if end == -1 {
+		err = parser.ParseContinue.WithReason("http header end not found")
+		return
+	}
+	// add len of \r\n\r\n
+	end += 4
+
+	//fmt.Println(idx)
 	headers := strings.Split(str, "\r\n")
 	// two \r\n and http request line
 	if len(headers) < 3 {
-		return nil, parser.ParseContinue.WithReason("http request line required")
+		err = parser.ParseContinue.WithReason("http request line required")
+		return
 	}
 	re := regexp.MustCompile(" +")
 
@@ -302,7 +312,8 @@ func ParseHttpHeaders(buf []byte) (headerMap map[string]string, err error) {
 	ra := re.Split(requestLine, -1)
 	//fmt.Println("request line len:", len(ra), "content:", ra)
 	if len(ra) != 3 {
-		return nil, parser.ParseFatal.WithReason("http request line required")
+		err = parser.ParseFatal.WithReason("http request line required")
+		return
 	}
 
 	re1 := regexp.MustCompile(" *: *")

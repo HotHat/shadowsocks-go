@@ -144,3 +144,29 @@ func TestHttpUpgradeKeyValidate(t *testing.T) {
 	b := HttpUpgradeKeyValidate("dGhlIHNhbXBsZSBub25jZQ==", "s3pPLMBiTxaQ9kYGzzhZRbK+xOo=")
 	fmt.Println(b)
 }
+
+func TestParseHttpHeaders(t *testing.T) {
+	str := "GET /chat HTTP/1.1\r\nHost: server.example.com\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nOrigin: http://example.com\r\nSec-WebSocket-Protocol: chat, superchat\r\nSec-WebSocket-Version: 13\r\n"
+
+	// not found http header end
+	h, e, err := ParseHttpHeaders([]byte(str))
+
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println("map:", h)
+		fmt.Println("end:", e)
+	}
+
+	//  normal http header
+	str += "\r\n"
+	h, e, err = ParseHttpHeaders([]byte(str))
+
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println("map:", h)
+		fmt.Println("end:", e, " string len:", len(str))
+	}
+
+}
