@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"shadowsocks-go/websocket"
 	"time"
 )
 
@@ -42,14 +43,48 @@ func handle(ctx context.Context, duration time.Duration) {
 
 func handleRead(ctx context.Context, conn net.Conn, channel chan<- []byte, isExit chan<- bool) {
 	buf := make([]byte, 4096)
+	readLen := 0
 	for {
-		n, err := conn.Read(buf)
+		tmp := buf[readLen:]
+		if len(tmp) == 0 {
+			isExit <- true
+			break
+		}
+
+		n, err := conn.Read(tmp)
+		readLen += n
 		if err != nil {
 			isExit <- true
 			break
 		}
-		fmt.Println("Read:", n, " data:", buf[:n])
-		channel <- buf[:n]
+		fmt.Println("read:", string(tmp))
+		fmt.Println("read:", string(buf[:readLen]))
+
+		// parse http header
+		h, ln, err1 := websocket.ParseHttpHeaders(buf[:readLen])
+		if err1 != nil {
+			if err1.IsContinue() {
+				continue
+			}
+			fmt.Println(err1)
+			isExit <- true
+			break
+		}
+
+		fmt.Println("http header:", h)
+		fmt.Println("http header len:", ln)
+		channel <- buf[:readLen]
+
+		// some data left in buffer
+		if ln < readLen {
+			copy(buf, buf[ln:readLen])
+			readLen = readLen - ln
+			fmt.Println("data left in buffer:", buf[:readLen])
+		} else {
+			// 重新开始
+			readLen = 0
+		}
+
 	}
 
 	select {

@@ -147,6 +147,7 @@ func TestHttpUpgradeKeyValidate(t *testing.T) {
 
 func TestParseHttpHeaders(t *testing.T) {
 	str := "GET /chat HTTP/1.1\r\nHost: server.example.com\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nOrigin: http://example.com\r\nSec-WebSocket-Protocol: chat, superchat\r\nSec-WebSocket-Version: 13\r\n"
+	//str := "GET /chat HTTP/1.1\r\n"
 
 	// not found http header end
 	h, e, err := ParseHttpHeaders([]byte(str))

@@ -21,6 +21,18 @@ const (
 	OpcodePong     = 0xA
 )
 
+type HttpRequestHeader struct {
+	requestLine []string
+	headers     map[string]string
+}
+
+func NewHttpRequestHeader() *HttpRequestHeader {
+	return &HttpRequestHeader{
+		requestLine: nil,
+		headers:     make(map[string]string),
+	}
+}
+
 func NewHttpUpgrade(path string, host, origin string) []byte {
 	t := make([]byte, 16)
 	_, _ = rand.Read(t)
@@ -286,8 +298,8 @@ func ParseFramePayloadLength(buf []byte) (fin bool, opcode uint8, mask []byte, p
 
 	return
 }
-func ParseHttpHeaders(buf []byte) (headerMap map[string]string, end int, err error) {
-	headerMap = make(map[string]string)
+func ParseHttpHeaders(buf []byte) (requestHeader *HttpRequestHeader, end int, err parser.IParseError) {
+	requestHeader = NewHttpRequestHeader()
 	str := string(buf)
 	end = strings.Index(str, "\r\n\r\n")
 
@@ -315,6 +327,7 @@ func ParseHttpHeaders(buf []byte) (headerMap map[string]string, end int, err err
 		err = parser.ParseFatal.WithReason("http request line required")
 		return
 	}
+	requestHeader.requestLine = ra
 
 	re1 := regexp.MustCompile(" *: *")
 
@@ -322,9 +335,9 @@ func ParseHttpHeaders(buf []byte) (headerMap map[string]string, end int, err err
 		//fmt.Println("index:", i, " header:", headers[i])
 		sp := re1.Split(headers[i], -1)
 		k := strings.Trim(sp[0], " ")
-		headerMap[k] = strings.Trim(sp[1], " ")
+		requestHeader.headers[k] = strings.Trim(sp[1], " ")
 	}
 
-	//fmt.Println(headerMap)
+	//fmt.Println(requestHeader)
 	return
 }

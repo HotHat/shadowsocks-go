@@ -12,6 +12,12 @@ var (
 	ParseFatal    = ParseError{kind: Fatal}
 )
 
+type IParseError interface {
+	error
+	IsContinue() bool
+	IsFatal() bool
+}
+
 type ParseError struct {
 	kind   int
 	reason string
