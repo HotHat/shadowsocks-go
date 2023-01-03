@@ -85,6 +85,60 @@ func handleRead(ctx context.Context, conn net.Conn, channel chan<- []byte, isExi
 			readLen = 0
 		}
 
+		//
+		break
+	}
+
+	for {
+		tmp := buf[readLen:]
+		if len(tmp) == 0 {
+			isExit <- true
+			break
+		}
+
+		n, err := conn.Read(tmp)
+		readLen += n
+		if err != nil {
+			isExit <- true
+			break
+		}
+
+		fin, op, mask, pl, hl, err1 := websocket.ParseFramePayloadLength(buf[:readLen])
+
+		if err1 != nil {
+			if err1.IsContinue() {
+				continue
+			}
+		}
+
+		dataBuf := make([]byte, pl)
+		// data in buf
+		if int(hl) < readLen {
+			copy(dataBuf, buf[hl:readLen])
+		}
+
+		readLen = 0
+		for readLen < int(pl) {
+			tp := dataBuf[readLen:]
+			n, err := conn.Read(tp)
+			readLen += n
+			if err != nil {
+				isExit <- true
+				break
+			}
+		}
+
+		// dataBuf with the frame data
+		if len(mask) > 0 {
+			for k, _ := range dataBuf {
+				m := mask[k%4]
+				dataBuf[k] ^= m
+			}
+		}
+
+		fmt.Printf("fin: %b\n", fin)
+		fmt.Printf("op:  %b\n", op)
+		fmt.Printf("data: %s\n", string(dataBuf))
 	}
 
 	select {

@@ -235,7 +235,7 @@ func ParseFrame(buf []byte) (fin bool, opcode uint8, data []byte, err error) {
 	return
 }
 
-func ParseFramePayloadLength(buf []byte) (fin bool, opcode uint8, mask []byte, payload uint64, err error) {
+func ParseFramePayloadLength(buf []byte) (fin bool, opcode uint8, mask []byte, payload uint64, headerLen uint8, err parser.IParseError) {
 	bufLen := len(buf)
 	if bufLen < 2 {
 		err = parser.ParseContinue.WithReason("frame length less than 2")

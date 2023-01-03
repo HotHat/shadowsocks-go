@@ -118,7 +118,7 @@ func TestParseFrame3(t *testing.T) {
 
 func TestParseFramePayloadLengthWithoutMask(t *testing.T) {
 	b := []byte{0x81, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f}
-	f, op, m, p, err := ParseFramePayloadLength(b)
+	f, op, m, p, hl, err := ParseFramePayloadLength(b)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -126,11 +126,12 @@ func TestParseFramePayloadLengthWithoutMask(t *testing.T) {
 	fmt.Println(op)
 	fmt.Println(m)
 	fmt.Println(p)
+	fmt.Println(hl)
 }
 
 func TestParseFramePayloadLengthWithMask(t *testing.T) {
 	b := []byte{0x81, 0x85, 0x37, 0xfa, 0x21, 0x3d, 0x7f, 0x9f, 0x4d, 0x51, 0x58}
-	f, op, m, p, err := ParseFramePayloadLength(b)
+	f, op, m, p, hl, err := ParseFramePayloadLength(b)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -138,6 +139,7 @@ func TestParseFramePayloadLengthWithMask(t *testing.T) {
 	fmt.Println(op)
 	fmt.Println(m)
 	fmt.Println(p)
+	fmt.Println(hl)
 }
 
 func TestHttpUpgradeKeyValidate(t *testing.T) {
