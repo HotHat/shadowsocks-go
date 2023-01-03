@@ -57,8 +57,8 @@ func handleRead(ctx context.Context, conn net.Conn, channel chan<- []byte, isExi
 			isExit <- true
 			break
 		}
-		fmt.Println("read:", string(tmp))
-		fmt.Println("read:", string(buf[:readLen]))
+		fmt.Println("one time read:", string(tmp[:n]))
+		fmt.Println("one request read:", string(buf[:readLen]))
 
 		// parse http header
 		h, ln, err1 := websocket.ParseHttpHeaders(buf[:readLen])
