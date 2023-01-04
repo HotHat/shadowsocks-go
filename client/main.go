@@ -66,6 +66,7 @@ func handleRead(ctx context.Context, conn net.Conn, channel chan<- []byte, isExi
 			if err1.IsContinue() {
 				continue
 			}
+			fmt.Println("Parse Http Headers error")
 			fmt.Println(err1)
 			isExit <- true
 			break
@@ -73,7 +74,8 @@ func handleRead(ctx context.Context, conn net.Conn, channel chan<- []byte, isExi
 
 		fmt.Println("http header:", h)
 		fmt.Println("http header len:", ln)
-		channel <- buf[:readLen]
+
+		//channel <- buf[:readLen]
 
 		// some data left in buffer
 		if ln < readLen {
@@ -90,18 +92,17 @@ func handleRead(ctx context.Context, conn net.Conn, channel chan<- []byte, isExi
 	}
 
 	for {
-		tmp := buf[readLen:]
-		if len(tmp) == 0 {
-			isExit <- true
-			break
-		}
+		//tmp := buf[readLen:]
+		//if len(tmp) == 0 {
+		//	isExit <- true
+		//	break
+		//}
 
-		n, err := conn.Read(tmp)
-		readLen += n
-		if err != nil {
-			isExit <- true
-			break
-		}
+		//n, err := conn.Read(tmp)
+		//readLen += n
+		//if err != nil {
+		//	goto IOError
+		//}
 
 		fin, op, mask, pl, hl, err1 := websocket.ParseFramePayloadLength(buf[:readLen])
 
@@ -110,21 +111,26 @@ func handleRead(ctx context.Context, conn net.Conn, channel chan<- []byte, isExi
 				continue
 			}
 		}
+		fmt.Printf("fin: %b\n", fin)
+		fmt.Printf("op:  %b\n", op)
+		fmt.Printf("mask:  %b\n", mask)
+		fmt.Printf("pl:  %b\n", pl)
+		fmt.Printf("hl:  %b\n", hl)
+		fmt.Printf("readLen:  %d\n", readLen)
 
 		dataBuf := make([]byte, pl)
 		// data in buf
-		if int(hl) < readLen {
+		if int(pl) < readLen {
 			copy(dataBuf, buf[hl:readLen])
+			readLen = readLen - int(hl)
 		}
 
-		readLen = 0
 		for readLen < int(pl) {
 			tp := dataBuf[readLen:]
 			n, err := conn.Read(tp)
 			readLen += n
 			if err != nil {
-				isExit <- true
-				break
+				goto IOError
 			}
 		}
 
@@ -140,6 +146,9 @@ func handleRead(ctx context.Context, conn net.Conn, channel chan<- []byte, isExi
 		fmt.Printf("op:  %b\n", op)
 		fmt.Printf("data: %s\n", string(dataBuf))
 	}
+
+IOError:
+	isExit <- true
 
 	select {
 	case <-ctx.Done():

@@ -286,6 +286,7 @@ func ParseFramePayloadLength(buf []byte) (fin bool, opcode uint8, mask []byte, p
 		payload = binary.BigEndian.Uint64(buf[2:10])
 		maskStart += 8
 	}
+	headerLen = uint8(maskStart)
 
 	// mask
 	if isMask {
@@ -294,6 +295,7 @@ func ParseFramePayloadLength(buf []byte) (fin bool, opcode uint8, mask []byte, p
 			return
 		}
 		mask = buf[maskStart : maskStart+4]
+		headerLen += 4
 	}
 
 	return
