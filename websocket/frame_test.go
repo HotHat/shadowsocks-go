@@ -18,19 +18,33 @@ func TestNewFrame1(t *testing.T) {
 
 func TestMask(t *testing.T) {
 
-	a1 := 84 ^ 228
-	a2 := 104 ^ 166
-	a3 := 105 ^ 36
-	a4 := 115 ^ 40
-	fmt.Printf("%b, %d\n", a1, a1)
-	fmt.Printf("%b, %d\n", a2, a2)
-	fmt.Printf("%b, %d\n", a3, a3)
-	fmt.Printf("%b, %d\n", a4, a4)
+	//a1 := 84 ^ 228
+	//a2 := 104 ^ 166
+	//a3 := 105 ^ 36
+	//a4 := 115 ^ 40
+	//fmt.Printf("%b, %d\n", a1, a1)
+	//fmt.Printf("%b, %d\n", a2, a2)
+	//fmt.Printf("%b, %d\n", a3, a3)
+	//fmt.Printf("%b, %d\n", a4, a4)
+	//
+	//fmt.Printf("%d, %d\n", 84, a1^228)
+	//fmt.Printf("%d, %d\n", 104, a2^166)
+	//fmt.Printf("%d, %d\n", 105, a3^36)
+	//fmt.Printf("%d, %d\n", 115, a4^40)
 
-	fmt.Printf("%d, %d\n", 84, a1^228)
-	fmt.Printf("%d, %d\n", 104, a2^166)
-	fmt.Printf("%d, %d\n", 105, a3^36)
-	fmt.Printf("%d, %d\n", 115, a4^40)
+	m := []byte{0b11111111, 0b10010111, 0b1111, 0b10010111}
+	b := []byte("Read")
+	for k, _ := range b {
+		m := m[k%4]
+		b[k] ^= m
+	}
+	fmt.Printf("%v\n", b)
+	for k, _ := range b {
+		m := m[k%4]
+		b[k] ^= m
+	}
+	fmt.Printf("%v\n", string(b))
+
 }
 
 func TestParseFrame(t *testing.T) {
@@ -129,6 +143,20 @@ func TestParseFramePayloadLengthWithoutMask(t *testing.T) {
 	fmt.Println(hl)
 }
 
+func TestParseFramePayloadLengthWithoutMask2(t *testing.T) {
+	b := NewFrame(true, OpcodeText, false, []byte("Read reads data from the connection. Read can be made to time out and return an error after a fixed time limit; see SetDeadline and SetReadDeadline"))
+	f, op, m, p, hl, err := ParseFramePayloadLength(b)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(f)
+	fmt.Println(op)
+	fmt.Println(m)
+	fmt.Println(p)
+	fmt.Println(hl)
+
+}
+
 func TestParseFramePayloadLengthWithMask(t *testing.T) {
 	b := []byte{0x81, 0x85, 0x37, 0xfa, 0x21, 0x3d, 0x7f, 0x9f, 0x4d, 0x51, 0x58}
 	f, op, m, p, hl, err := ParseFramePayloadLength(b)
@@ -140,6 +168,26 @@ func TestParseFramePayloadLengthWithMask(t *testing.T) {
 	fmt.Println(m)
 	fmt.Println(p)
 	fmt.Println(hl)
+}
+func TestParseFramePayloadLengthWithMask2(t *testing.T) {
+	b := NewFrame(true, OpcodeText, true, []byte("Read reads data from the connection. Read can be made to time out and return an error after a fixed time limit; see SetDeadline and SetReadDeadline"))
+	f, op, m, p, hl, err := ParseFramePayloadLength(b)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Printf("mask: %b\n", b)
+	fmt.Println(f)
+	fmt.Println(op)
+	fmt.Println(m)
+	fmt.Println(p)
+	fmt.Println(hl)
+
+	fb := b[hl:]
+	for k, _ := range fb {
+		s := m[k%4]
+		fb[k] ^= s
+	}
+	fmt.Println(string(fb))
 }
 
 func TestHttpUpgradeKeyValidate(t *testing.T) {

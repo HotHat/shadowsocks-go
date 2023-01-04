@@ -15,12 +15,18 @@ func TestClient(t *testing.T) {
 	httpHeader := "GET /chat HTTP/1.1\r\nHost: server.example.com\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nOrigin: http://example.com\r\nSec-WebSocket-Protocol: chat, superchat\r\nSec-WebSocket-Version: 13\r\n\r\n"
 	conn.Write([]byte(httpHeader))
 
-	b := []byte{0x81, 0x85, 0x37, 0xfa, 0x21, 0x3d, 0x7f, 0x9f, 0x4d, 0x51, 0x58}
+	b := NewFrame(true, OpcodeText, true, []byte("Read reads data from the connection. Read can be made to time out and return an error after a fixed time limit; see SetDeadline and SetReadDeadline"))
 	conn.Write(b)
 
-	for {
-		time.Sleep(2000)
-	}
+	b = NewFrame(true, OpcodeText, true, []byte("ReadSetReadDeadline"))
+	conn.Write(b)
+
+	b = NewFrame(true, OpcodeText, false, []byte("LocalAddr returns the local network address, if known."))
+	conn.Write(b)
+
+	//for {
+	time.Sleep(5000)
+	//}
 
 	conn.Close()
 

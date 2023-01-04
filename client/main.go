@@ -91,59 +91,73 @@ func handleRead(ctx context.Context, conn net.Conn, channel chan<- []byte, isExi
 		break
 	}
 
+	isFrameStart := readLen == 0
+
 	for {
-		//tmp := buf[readLen:]
-		//if len(tmp) == 0 {
-		//	isExit <- true
-		//	break
-		//}
-
-		//n, err := conn.Read(tmp)
-		//readLen += n
-		//if err != nil {
-		//	goto IOError
-		//}
-
-		fin, op, mask, pl, hl, err1 := websocket.ParseFramePayloadLength(buf[:readLen])
-
-		if err1 != nil {
-			if err1.IsContinue() {
-				continue
+		fmt.Println("-------------ws frame loop------------")
+		// get more buffer data
+		if isFrameStart {
+			tmp := buf[readLen:]
+			if len(tmp) == 0 {
+				goto IOError
 			}
-		}
-		fmt.Printf("fin: %b\n", fin)
-		fmt.Printf("op:  %b\n", op)
-		fmt.Printf("mask:  %b\n", mask)
-		fmt.Printf("pl:  %b\n", pl)
-		fmt.Printf("hl:  %b\n", hl)
-		fmt.Printf("readLen:  %d\n", readLen)
 
-		dataBuf := make([]byte, pl)
-		// data in buf
-		if int(pl) < readLen {
-			copy(dataBuf, buf[hl:readLen])
-			readLen = readLen - int(hl)
-		}
-
-		for readLen < int(pl) {
-			tp := dataBuf[readLen:]
-			n, err := conn.Read(tp)
+			n, err := conn.Read(tmp)
 			readLen += n
 			if err != nil {
 				goto IOError
 			}
 		}
 
+		isFrameStart = true
+
+		fin, op, mask, pl, hl, err1 := websocket.ParseFramePayloadLength(buf[:readLen])
+
+		if err1 != nil {
+			if err1.IsContinue() {
+				fmt.Println("need more frame data")
+				continue
+			}
+		}
+		fmt.Printf("fin: %b\n", fin)
+		fmt.Printf("op:  %b\n", op)
+		fmt.Printf("mask:  %v\n", mask)
+		fmt.Printf("frame data length:  %d\n", pl)
+		fmt.Printf("frame head length:  %d\n", hl)
+		fmt.Printf("readLen:  %d\n", readLen)
+
+		dataBuf := make([]byte, pl)
+		idx := int(uint64(hl) + pl)
+		if idx <= readLen {
+			copy(dataBuf, buf[hl:idx])
+			copy(buf, buf[idx:readLen])
+			readLen = readLen - idx
+		} else {
+			readLen = 0
+			// read more data from conn
+			r := 0
+			for r < int(pl) {
+				tp := dataBuf[r:]
+				n, err := conn.Read(tp)
+				r += n
+				if err != nil {
+					goto IOError
+				}
+			}
+		}
+
 		// dataBuf with the frame data
 		if len(mask) > 0 {
+			fmt.Printf("mask: %d %v\n", len(dataBuf), dataBuf)
 			for k, _ := range dataBuf {
 				m := mask[k%4]
 				dataBuf[k] ^= m
 			}
+			fmt.Printf("unmask: %v\n", string(dataBuf))
 		}
 
-		fmt.Printf("fin: %b\n", fin)
-		fmt.Printf("op:  %b\n", op)
+		isFrameStart = readLen == 0
+
 		fmt.Printf("data: %s\n", string(dataBuf))
 	}
 

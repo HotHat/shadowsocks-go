@@ -128,7 +128,7 @@ func NewFrame(fin bool, opcode uint8, mask bool, data []byte) []byte {
 	if payloadByteLen == 1 {
 		b[1] = b[1] | uint8(dataLen)
 	} else if payloadByteLen == 3 {
-		b[1] = b[1] | 0x7F
+		b[1] = b[1] | 0x7E
 		binary.BigEndian.PutUint16(b[2:4], uint16(dataLen))
 	} else {
 		b[1] = b[1] | 0x7F
@@ -294,7 +294,8 @@ func ParseFramePayloadLength(buf []byte) (fin bool, opcode uint8, mask []byte, p
 			err = parser.ParseContinue.WithReason(fmt.Sprintf("frame length less than %d", maskStart+4))
 			return
 		}
-		mask = buf[maskStart : maskStart+4]
+		mask = make([]byte, 4)
+		copy(mask, buf[maskStart:maskStart+4])
 		headerLen += 4
 	}
 
