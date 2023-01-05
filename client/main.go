@@ -1,14 +1,19 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"net"
+	"os"
 	"shadowsocks-go/websocket"
+	"strings"
 	"time"
 )
 
 func main() {
+
+	go readFromTerminate()
 	listen, err := net.Listen("tcp", "0.0.0.0:9000")
 	if err != nil {
 		panic(err)
@@ -24,6 +29,7 @@ func main() {
 		fmt.Println("Connect from", conn.RemoteAddr())
 		go handleConnection(conn)
 	}
+
 }
 
 func handle(ctx context.Context, duration time.Duration) {
@@ -174,13 +180,44 @@ func handleWrite(ctx context.Context, conn net.Conn, channel <-chan []byte, isEx
 	for {
 		select {
 		case buf := <-channel:
-			n, err := conn.Write(buf)
+			b := websocket.NewFrame(true, websocket.OpcodeText, true, buf)
+			n, err := conn.Write(b)
 			if err != nil {
 				isExit <- true
 			}
 			fmt.Println("Write:", n, " data:", buf)
 		case <-ctx.Done():
 			return
+		}
+	}
+}
+func readFromTerminate(ctx context.Context, conn net.Conn, channel chan<- []byte, isExit chan<- bool) {
+	fmt.Println("Input from terminate")
+
+	for {
+		rd := bufio.NewReader(os.Stdin)
+		lineBuf, _, err := rd.ReadLine()
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+
+		s := string(lineBuf)
+		s = strings.Trim(s, " ")
+		fmt.Println(s)
+		// write to channel
+		channel <- []byte(s)
+		b := websocket.NewFrame(true, websocket.OpcodeText, true, buf)
+		_, err = conn.Write(b)
+		if err != nil {
+			isExit <- true
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			continue
 		}
 	}
 }
@@ -192,6 +229,7 @@ func handleConnection(conn net.Conn) {
 	defer close(isExit)
 	defer close(channel)
 
+	go readFromTerminate(ctx, conn, channel, isExit)
 	go handleRead(ctx, conn, channel, isExit)
 	go handleWrite(ctx, conn, channel, isExit)
 
