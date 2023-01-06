@@ -1,7 +1,9 @@
 package websocket
 
 import (
+	"fmt"
 	"net"
+	"net/url"
 	"testing"
 	"time"
 )
@@ -30,4 +32,16 @@ func TestClient(t *testing.T) {
 
 	conn.Close()
 
+}
+
+func TestUrl(t *testing.T) {
+	p, err := url.Parse("ws://game.example.com:12010/updates")
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(p)
+	fmt.Println(p.Host)
+	fmt.Println(p.Scheme)
+	fmt.Println(p.Path)
+	fmt.Println(p.Port())
 }

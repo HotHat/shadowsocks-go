@@ -13,7 +13,6 @@ import (
 
 func main() {
 
-	go readFromTerminate()
 	listen, err := net.Listen("tcp", "0.0.0.0:9000")
 	if err != nil {
 		panic(err)
@@ -207,7 +206,7 @@ func readFromTerminate(ctx context.Context, conn net.Conn, channel chan<- []byte
 		fmt.Println(s)
 		// write to channel
 		channel <- []byte(s)
-		b := websocket.NewFrame(true, websocket.OpcodeText, true, buf)
+		b := websocket.NewFrame(true, websocket.OpcodeText, true, []byte(s))
 		_, err = conn.Write(b)
 		if err != nil {
 			isExit <- true
