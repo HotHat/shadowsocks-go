@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"net"
@@ -97,6 +98,7 @@ func handleRead(ctx context.Context, conn net.Conn, channel chan<- []byte, isExi
 	}
 
 	isFrameStart := readLen == 0
+	packBuf := bytes.Buffer{}
 
 	for {
 		fmt.Println("-------------ws frame loop------------")
@@ -117,13 +119,13 @@ func handleRead(ctx context.Context, conn net.Conn, channel chan<- []byte, isExi
 		isFrameStart = true
 
 		fin, op, mask, pl, hl, err1 := websocket.ParseFramePayloadLength(buf[:readLen])
-
 		if err1 != nil {
 			if err1.IsContinue() {
 				fmt.Println("need more frame data")
 				continue
 			}
 		}
+
 		fmt.Printf("fin: %b\n", fin)
 		fmt.Printf("op:  %b\n", op)
 		fmt.Printf("mask:  %v\n", mask)
@@ -138,9 +140,11 @@ func handleRead(ctx context.Context, conn net.Conn, channel chan<- []byte, isExi
 			copy(buf, buf[idx:readLen])
 			readLen = readLen - idx
 		} else {
+			copy(dataBuf, buf[hl:readLen])
+			r := readLen - int(hl)
 			readLen = 0
+
 			// read more data from conn
-			r := 0
 			for r < int(pl) {
 				tp := dataBuf[r:]
 				n, err := conn.Read(tp)
@@ -162,6 +166,16 @@ func handleRead(ctx context.Context, conn net.Conn, channel chan<- []byte, isExi
 		}
 
 		isFrameStart = readLen == 0
+
+		packBuf.Write(dataBuf)
+		if fin {
+			fmt.Println("This is fin package")
+			fmt.Println(string(packBuf.Bytes()))
+			packBuf.Reset()
+		} else {
+			fmt.Println("This is not fin package")
+			fmt.Println(string(packBuf.Bytes()))
+		}
 
 		fmt.Printf("data: %s\n", string(dataBuf))
 	}
